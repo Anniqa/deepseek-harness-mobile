@@ -12,7 +12,11 @@ public final class Prefs {
     public static final String KEY_ROOTFS_URL = "rootfs_url";
     public static final String KEY_NODE_MIRROR = "node_mirror";
     public static final String KEY_NPM_REGISTRY = "npm_registry";
+    public static final String KEY_SSH_PORT = "ssh_port";
+    public static final String KEY_SSH_PASSWORD = "ssh_password";
     public static final String KEY_SETUP_DONE = "setup_done";
+
+    public static final int DEFAULT_SSH_PORT = 8022;
 
     // 默认走国内镜像（中科大 USTC）：rootfs/Node/Termux 池都有对应目录。
     // npm registry USTC 没有镜像，用 npmmirror（原淘宝源）。
@@ -78,5 +82,29 @@ public final class Prefs {
 
     public void setSetupDone(boolean done) {
         sp.edit().putBoolean(KEY_SETUP_DONE, done).apply();
+    }
+
+    public int getSshPort() {
+        return sp.getInt(KEY_SSH_PORT, DEFAULT_SSH_PORT);
+    }
+
+    public void setSshPort(int port) {
+        sp.edit().putInt(KEY_SSH_PORT, port).apply();
+    }
+
+    /** SSH 的 root 密码：首次读取时生成并持久化（换密码=重置后重装生成新的）。 */
+    public String getSshPassword() {
+        String pw = sp.getString(KEY_SSH_PASSWORD, null);
+        if (pw == null || pw.isEmpty()) {
+            String chars = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789";
+            java.security.SecureRandom r = new java.security.SecureRandom();
+            StringBuilder sb = new StringBuilder(10);
+            for (int i = 0; i < 10; i++) {
+                sb.append(chars.charAt(r.nextInt(chars.length())));
+            }
+            pw = sb.toString();
+            sp.edit().putString(KEY_SSH_PASSWORD, pw).apply();
+        }
+        return pw;
     }
 }

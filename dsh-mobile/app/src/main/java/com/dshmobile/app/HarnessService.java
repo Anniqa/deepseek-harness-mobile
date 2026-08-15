@@ -26,6 +26,7 @@ public class HarnessService extends Service {
     private static final int MAX_RESTART = 5;
 
     private static Process process;
+    private static Process sshdProcess;
     private static boolean running;
 
     private ExecutorService executor;
@@ -90,6 +91,7 @@ public class HarnessService extends Service {
             }
             try {
                 updateNotification("DeepSeek Harness 运行中 · 端口 " + prefs.getPort());
+                startSshd(prefs, log);
                 process = ProotRunner.startWeb(this, prefs.getPort(), log);
                 running = true;
                 int code = process.waitFor();
@@ -119,6 +121,18 @@ public class HarnessService extends Service {
         }
     }
 
+    /** 启动容器内 sshd：老容器没有就先联网补装（失败不影响 Web 服务）。 */
+    private void startSshd(Prefs prefs, File log) {
+        BootstrapInstaller.ensureSshServerInstalled(this, log);
+        if (!new File(ProotRunner.rootfsDir(this), "usr/sbin/sshd").isFile()) return;
+        if (sshdProcess != null && sshdProcess.isAlive()) return;
+        try {
+            sshdProcess = ProotRunner.startSshd(this, prefs.getSshPort(), log);
+        } catch (IOException e) {
+            updateNotification("SSH 启动失败: " + e.getMessage());
+        }
+    }
+
     private void stopContainer() {
         Process p = process;
         if (p != null) {
@@ -129,6 +143,12 @@ public class HarnessService extends Service {
                 Thread.currentThread().interrupt();
             }
             p.destroyForcibly();
+        }
+        Process s = sshdProcess;
+        sshdProcess = null;
+        if (s != null) {
+            s.destroy();
+            s.destroyForcibly();
         }
         running = false;
     }

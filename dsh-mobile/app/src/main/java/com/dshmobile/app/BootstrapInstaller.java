@@ -254,12 +254,78 @@ public final class BootstrapInstaller {
             }
 
             checkCancelled();
+            // 6. SSH 服务：本地终端（Termux / adb forward）连容器用
+            ensureSshServer(rootfs);
+            checkCancelled();
             stage("完成", 100);
             prefs.setSetupDone(true);
             listener.onDone(true, null);
         } catch (Exception e) {
             log("安装失败: " + e.getMessage());
             listener.onDone(false, e.getMessage());
+        }
+    }
+
+    /**
+     * 安装容器内 SSH 服务（幂等）：openssh-server。
+     * host keys、/run/sshd、root 密码在每次启动 sshd 时确保（ProotRunner.startSshd）。
+     */
+    private void ensureSshServer(File rootfs) throws IOException, InterruptedException {
+        if (new File(rootfs, "usr/sbin/sshd").isFile()) {
+            log("SSH 服务已安装，跳过");
+            return;
+        }
+        stage("安装 SSH 服务", 97);
+        // 与工具链安装同理：先清残留 apt 进程与 dpkg 半配置状态
+        killStaleAptProcesses();
+        runInContainer(Arrays.asList("/usr/bin/apt-get",
+                "-o", "DPkg::Lock::Timeout=180", "update"), 97, 97);
+        try {
+            runInContainer(Arrays.asList("/usr/bin/dpkg", "--configure", "-a"), 97, 97);
+        } catch (Exception e) {
+            log("dpkg 状态修复未完成（忽略，继续安装）");
+        }
+        runInContainer(Arrays.asList("/usr/bin/apt-get",
+                "-o", "DPkg::Lock::Timeout=180",
+                "install", "-y", "--no-install-recommends", "openssh-server"), 97, 99);
+    }
+
+    /**
+     * 服务启动前兜底（HarnessService 调用）：老容器没有 sshd 时联网补装，
+     * 失败只影响 SSH，不影响 Web 服务。日志追加到 logFile。
+     */
+    public static void ensureSshServerInstalled(Context ctx, File logFile) {
+        if (new File(ProotRunner.rootfsDir(ctx), "usr/sbin/sshd").isFile()) return;
+        BootstrapInstaller installer = new BootstrapInstaller(ctx, new Listener() {
+            @Override
+            public void onStage(String stage, int percent) {
+                appendLog(logFile, "[ssh] " + stage);
+            }
+
+            @Override
+            public void onLog(String line) {
+                appendLog(logFile, "[ssh] " + line);
+            }
+
+            @Override
+            public void onDone(boolean success, String error) {
+            }
+        });
+        try {
+            installer.ensureSshServer(ProotRunner.rootfsDir(ctx));
+            appendLog(logFile, "[ssh] openssh-server 补装完成");
+        } catch (Exception e) {
+            appendLog(logFile, "[ssh] 安装失败（不影响 Web 服务）: " + e.getMessage());
+        }
+    }
+
+    private static void appendLog(File f, String line) {
+        try {
+            java.io.FileOutputStream out = new java.io.FileOutputStream(f, true);
+            out.write((line + "\n").getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            out.close();
+        } catch (Exception ignored) {
+            // 日志写不进就算了，不影响主流程
         }
     }
 

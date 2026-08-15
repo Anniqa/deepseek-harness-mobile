@@ -128,6 +128,36 @@ public class SettingsActivity extends Activity {
         brlp.topMargin = Ui.dp(this, 12);
         list.addView(btnRow, brlp);
 
+        // ---- 容器 SSH ----
+        addHeader("容器 SSH（随服务自启）");
+        LinearLayout sshCard = Ui.card(this);
+        addRow(sshCard, "连接方式",
+                "本机终端/Termux：ssh root@127.0.0.1 -p " + prefs.getSshPort()
+                        + "；电脑：adb forward tcp:" + prefs.getSshPort() + " tcp:" + prefs.getSshPort(),
+                null);
+        sshCard.addView(Ui.divider(this));
+        addRow(sshCard, "root 密码", prefs.getSshPassword() + "（点按复制）", v -> {
+            android.content.ClipboardManager cm =
+                    (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+            cm.setPrimaryClip(android.content.ClipData.newPlainText("ssh", prefs.getSshPassword()));
+            toast("密码已复制");
+        });
+        sshCard.addView(Ui.divider(this));
+        addRow(sshCard, "SSH 端口", String.valueOf(prefs.getSshPort()) + "（若与本机 Termux 冲突可改）",
+                v -> editText("SSH 端口", String.valueOf(prefs.getSshPort()), t -> {
+                    try {
+                        int p = Integer.parseInt(t.trim());
+                        if (p > 0 && p < 65536) {
+                            prefs.setSshPort(p);
+                            toast("SSH 端口已保存，重启服务后生效");
+                            refresh();
+                        }
+                    } catch (NumberFormatException ignored) {
+                        toast("端口无效");
+                    }
+                }));
+        list.addView(sshCard, cardLp());
+
         // ---- 后台保活 ----
         // 划卡清任务被杀是 OEM 行为（荣耀/MagicOS 默认杀整进程），App 侧只能
         // 尽量降低被杀概率：电池优化白名单 + 引导用户开「自启动/允许后台活动」。

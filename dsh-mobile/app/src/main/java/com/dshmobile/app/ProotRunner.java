@@ -179,4 +179,22 @@ public final class ProotRunner {
         inner.add(String.valueOf(port));
         return exec(ctx, inner, logFile);
     }
+
+    /**
+     * 启动容器内 sshd（-D 前台模式，生命周期随 proot 进程，服务停止时一起回收）。
+     * 只监听 127.0.0.1：本机终端（Termux 等）直连；电脑走 adb forward。
+     * host keys、/run/sshd 与 root 密码在每次启动时确保/同步（幂等）。
+     */
+    public static Process startSshd(Context ctx, int port, File logFile) throws IOException {
+        String pw = Prefs.of(ctx).getSshPassword();
+        List<String> inner = new ArrayList<>();
+        inner.add("/bin/sh");
+        inner.add("-c");
+        inner.add("mkdir -p /run/sshd && ssh-keygen -A >/dev/null 2>&1; "
+                + "echo 'root:" + pw + "' | chpasswd && "
+                + "exec /usr/sbin/sshd -D -e"
+                + " -o ListenAddress=127.0.0.1:" + port
+                + " -o PermitRootLogin=yes -o PasswordAuthentication=yes");
+        return exec(ctx, inner, logFile);
+    }
 }
