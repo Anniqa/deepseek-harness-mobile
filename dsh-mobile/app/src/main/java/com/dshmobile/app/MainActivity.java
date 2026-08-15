@@ -20,6 +20,9 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.webkit.ValueCallback;
+import android.webkit.WebChromeClient.FileChooserParams;
+import android.net.Uri;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
@@ -43,6 +46,8 @@ public class MainActivity extends Activity {
     private volatile boolean pageFailed;
     private int loadAttempts;
     private int port;
+    private static final int REQ_FILE_CHOOSER = 42;
+    private ValueCallback<Uri[]> fileCallback;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -120,7 +125,29 @@ public class MainActivity extends Activity {
                 }
             }
         });
-        webView.setWebChromeClient(new WebChromeClient());
+        webView.setWebChromeClient(new WebChromeClient() {
+            /**
+             * 网页里的 <input type="file">（dsh 附件/上传插件都走这个）在
+             * Android WebView 里默认被静默吞掉——必须在这里调起系统文件
+             * 选择器，否则点上传毫无反应。
+             */
+            @Override
+            public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback,
+                                             FileChooserParams params) {
+                if (fileCallback != null) fileCallback.onReceiveValue(null);
+                fileCallback = callback;
+                try {
+                    // createIntent() 自带 accept 类型与多选标志
+                    startActivityForResult(params.createIntent(), REQ_FILE_CHOOSER);
+                    return true;
+                } catch (Exception e) {
+                    // 没有能处理选取的应用等情况：归还回调避免网页侧卡死
+                    fileCallback = null;
+                    callback.onReceiveValue(null);
+                    return true;
+                }
+            }
+        });
         webView.addJavascriptInterface(new DshBridge(), "DshNative");
         root.addView(webView, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -404,5 +431,30 @@ public class MainActivity extends Activity {
             webView.destroy();
         }
         super.onDestroy();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQ_FILE_CHOOSER) {
+            if (fileCallback != null) {
+                Uri[] results = null;
+                if (resultCode == RESULT_OK && data != null) {
+                    // 多选结果在 clipData，单选在 data
+                    if (data.getClipData() != null) {
+                        int n = data.getClipData().getItemCount();
+                        results = new Uri[n];
+                        for (int i = 0; i < n; i++) {
+                            results[i] = data.getClipData().getItemAt(i).getUri();
+                        }
+                    } else if (data.getData() != null) {
+                        results = new Uri[]{data.getData()};
+                    }
+                }
+                fileCallback.onReceiveValue(results);
+                fileCallback = null;
+            }
+            return;
+        }
+        super.onActivityResult(requestCode, resultCode, data);
     }
 }
