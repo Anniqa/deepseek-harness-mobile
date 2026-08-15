@@ -17,7 +17,7 @@
 - **侧栏非常驻**：左侧 rail 默认隐藏，左上角悬浮按钮或屏幕左缘右滑呼出覆盖式抽屉，点遮罩、抽屉上左滑或选中会话自动收起
 - **DeepSeek 风格**：启动屏/安装向导/设置页均为 DeepSeek 品牌风格（品牌蓝 #4D6BFE、圆角卡片）
 - **前台服务保活**：容器由前台服务持有，通知栏可查看状态/停止
-- **容器 SSH**：openssh-server 随服务自启（仅监听 127.0.0.1:8022），本机终端/Termux 直接 `ssh root@127.0.0.1 -p 8022`，电脑走 `adb forward`；root 密码首次自动生成，设置页可查看/复制/改端口
+- **容器 SSH**：openssh-server 随服务自启（仅监听 127.0.0.1:8022），本机终端/Termux 直接 `ssh dsh@127.0.0.1 -p 8022`（普通用户 dsh，登录 PATH 带 node/npm；root 同密码也可登），电脑走 `adb forward`；密码首次自动生成，设置页可查看/复制/改端口
 - **命令沙箱已禁用**：容器启动时钉死 `DSH_PERMISSION_MODE=danger-full-access`（proot 里 bwrap/Landlock 基本不可用，workspace-write 会报 SANDBOX_UNAVAILABLE）；dsh 的 bash/文件写入不设围栏、不逐条询问。会话里仍可手动切回 workspace-write/read-only，但沙箱 runner 不可用时受限命令会失败
 
 ## 使用

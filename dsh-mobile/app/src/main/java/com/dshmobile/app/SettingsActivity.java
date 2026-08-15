@@ -132,11 +132,12 @@ public class SettingsActivity extends Activity {
         addHeader("容器 SSH（随服务自启）");
         LinearLayout sshCard = Ui.card(this);
         addRow(sshCard, "连接方式",
-                "本机终端/Termux：ssh root@127.0.0.1 -p " + prefs.getSshPort()
-                        + "；电脑：adb forward tcp:" + prefs.getSshPort() + " tcp:" + prefs.getSshPort(),
+                "本机终端/Termux：ssh dsh@127.0.0.1 -p " + prefs.getSshPort()
+                        + "（普通用户，PATH 已带 node/npm；root 同密码也可登）；电脑：adb forward tcp:"
+                        + prefs.getSshPort() + " tcp:" + prefs.getSshPort(),
                 null);
         sshCard.addView(Ui.divider(this));
-        addRow(sshCard, "root 密码", prefs.getSshPassword() + "（点按复制）", v -> {
+        addRow(sshCard, "用户名 / 密码", "dsh / " + prefs.getSshPassword() + "（点按复制密码）", v -> {
             android.content.ClipboardManager cm =
                     (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
             cm.setPrimaryClip(android.content.ClipData.newPlainText("ssh", prefs.getSshPassword()));

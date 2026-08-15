@@ -190,8 +190,12 @@ public final class ProotRunner {
         List<String> inner = new ArrayList<>();
         inner.add("/bin/sh");
         inner.add("-c");
+        // 普通用户 dsh（home=/home/dsh）：root 登录 shell 的 PATH 不带 node/npm，
+        // 日常操作应用 dsh 用户；/etc/profile.d 给所有登录 shell 补 node 路径。
         inner.add("mkdir -p /run/sshd && ssh-keygen -A >/dev/null 2>&1; "
-                + "echo 'root:" + pw + "' | chpasswd && "
+                + "id dsh >/dev/null 2>&1 || useradd -d /home/dsh -s /bin/bash dsh; "
+                + "echo 'dsh:" + pw + "' | chpasswd && echo 'root:" + pw + "' | chpasswd && "
+                + "printf 'export PATH=/opt/node/bin:$PATH\\n' > /etc/profile.d/dsh-node.sh && "
                 + "exec /usr/sbin/sshd -D -e"
                 + " -o ListenAddress=127.0.0.1:" + port
                 + " -o PermitRootLogin=yes -o PasswordAuthentication=yes");
