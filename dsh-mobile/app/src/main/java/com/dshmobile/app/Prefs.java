@@ -14,10 +14,12 @@ public final class Prefs {
     public static final String KEY_NPM_REGISTRY = "npm_registry";
     public static final String KEY_SETUP_DONE = "setup_done";
 
+    // 默认走国内镜像（中科大 USTC）：rootfs/Node/Termux 池都有对应目录。
+    // npm registry USTC 没有镜像，用 npmmirror（原淘宝源）。
     public static final String DEFAULT_ROOTFS_URL =
-            "https://cdimage.ubuntu.com/ubuntu-base/releases/22.04/release/ubuntu-base-22.04.5-base-arm64.tar.gz";
-    public static final String DEFAULT_NODE_MIRROR = "https://nodejs.org/dist";
-    public static final String DEFAULT_NPM_REGISTRY = "https://registry.npmjs.org";
+            "https://mirrors.ustc.edu.cn/ubuntu-cdimage/ubuntu-base/releases/22.04/release/ubuntu-base-22.04.5-base-arm64.tar.gz";
+    public static final String DEFAULT_NODE_MIRROR = "https://mirrors.ustc.edu.cn/node";
+    public static final String DEFAULT_NPM_REGISTRY = "https://registry.npmmirror.com";
     public static final int DEFAULT_PORT = 3080;
 
     private final SharedPreferences sp;

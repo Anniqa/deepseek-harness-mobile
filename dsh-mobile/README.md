@@ -4,7 +4,7 @@
 
 ## 功能
 
-- **内置 Ubuntu 容器**：proot 运行完整 Ubuntu 22.04 (aarch64) rootfs，首启联网下载（约 200MB：rootfs + Node.js + dsh）
+- **内置 Ubuntu 容器**：proot 运行完整 Ubuntu 22.04 (aarch64) rootfs，首启联网下载（约 200MB：rootfs + Node.js + dsh），默认全部走国内镜像（rootfs/Node/Termux/apt 用中科大源，npm 用 npmmirror）
 - **干净工作目录**：dsh 的 HOME 与 cwd 是容器内独立的 `/home/dsh`（不用 /root，避免安装残留与 npm 缓存污染工作区选择器）
 - **SD 卡目录映射**：外置 SD 卡 bind 到容器 `/mnt/sd` 和工作目录内 `/home/dsh/sd`；`/sdcard/dsh-shared` 兜底映射到 `/mnt/shared` 与 `/home/dsh/shared`，打开工作区即可看到 sd/ shared/ 两个入口，方便传入/传出文件
 - **手机版界面**：注入的 `mobile.css` 强制 dsh Web UI 适配手机屏幕比例（弹窗不溢出、详情面板按内容三态门控、轨迹事件详情面板整宽覆盖、触控目标加大、代码块横向滚动、设置弹窗单列化、消息页高度链锁死内部滚动、token/耗时统计条自动折行完整显示、悬浮提示气泡弹出 2.5 秒后自动消失）

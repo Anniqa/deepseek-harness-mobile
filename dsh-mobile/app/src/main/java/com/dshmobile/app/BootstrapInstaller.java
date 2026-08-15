@@ -41,7 +41,7 @@ public final class BootstrapInstaller {
     }
 
     private static final String TERMUX_POOL =
-            "https://packages.termux.dev/apt/termux-main/pool/main/";
+            "https://mirrors.ustc.edu.cn/termux/apt/termux-main/pool/main/";
     private static final String PROOT_POOL = TERMUX_POOL + "p/proot/";
     private static final String LIBTALLOC_POOL = TERMUX_POOL + "libt/libtalloc/";
     private static final String LIBANDROID_SHMEM_POOL = TERMUX_POOL + "liba/libandroid-shmem/";
@@ -270,13 +270,13 @@ public final class BootstrapInstaller {
         File resolv = new File(etc, "resolv.conf");
         String dns = "nameserver 223.5.5.5\nnameserver 8.8.8.8\n";
         Files.write(resolv.toPath(), dns.getBytes(StandardCharsets.UTF_8));
-        // apt 源（arm64 ports），供安装 node-pty 编译工具链
+        // apt 源（arm64 ports，中科大镜像），供安装 node-pty 编译工具链
         File sources = new File(etc, "apt");
         //noinspection ResultOfMethodCallIgnored
         sources.mkdirs();
-        String list = "deb http://ports.ubuntu.com/ubuntu-ports jammy main restricted universe multiverse\n"
-                + "deb http://ports.ubuntu.com/ubuntu-ports jammy-updates main restricted universe multiverse\n"
-                + "deb http://ports.ubuntu.com/ubuntu-ports jammy-security main restricted universe multiverse\n";
+        String list = "deb https://mirrors.ustc.edu.cn/ubuntu-ports jammy main restricted universe multiverse\n"
+                + "deb https://mirrors.ustc.edu.cn/ubuntu-ports jammy-updates main restricted universe multiverse\n"
+                + "deb https://mirrors.ustc.edu.cn/ubuntu-ports jammy-security main restricted universe multiverse\n";
         Files.write(new File(sources, "sources.list").toPath(), list.getBytes(StandardCharsets.UTF_8));
         //noinspection ResultOfMethodCallIgnored
         new File(rootfs, "mnt/sd").mkdirs();
@@ -467,7 +467,9 @@ public final class BootstrapInstaller {
     /** 从 Termux 仓库列表解析最新的指定包 aarch64 deb。 */
     private String resolveTermuxDeb(String pool, String prefix) throws IOException {
         String html = fetchText(pool);
-        Matcher m = Pattern.compile("href=\"(" + Pattern.quote(prefix) + "[^\"]+_aarch64\\.deb)\"")
+        // href 可能是相对文件名（packages.termux.dev）也可能是绝对路径
+        // （mirrors.ustc.edu.cn 的 fancyindex），统一取最后的文件名部分
+        Matcher m = Pattern.compile("href=\"(?:[^\"]*/)?(" + Pattern.quote(prefix) + "[^\"]+_aarch64\\.deb)\"")
                 .matcher(html);
         String latest = null;
         while (m.find()) {
