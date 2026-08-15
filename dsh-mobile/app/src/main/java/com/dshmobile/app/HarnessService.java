@@ -196,4 +196,22 @@ public class HarnessService extends Service {
     public IBinder onBind(Intent intent) {
         return null;
     }
+
+    @Override
+    public void onTaskRemoved(Intent rootIntent) {
+        // 划卡清任务时最后一搏：趁进程还没被杀，尝试把服务重新拉起来。
+        // Android 12+ 后台起前台服务可能抛异常（ForegroundServiceStartNotAllowed
+        // 等），拦住即可；荣耀/MagicOS 这类划卡杀整进程的 ROM，最终要靠用户在
+        // 系统设置里给本应用开「自启动/允许后台活动」（设置页有入口）。
+        if (wantRun) {
+            try {
+                Intent restart = new Intent(this, HarnessService.class);
+                restart.setAction(ACTION_START);
+                startForegroundService(restart);
+            } catch (Exception e) {
+                // 后台启动限制：无系统侧授权时无法绕过，交给 START_STICKY 与用户授权兜底
+            }
+        }
+        super.onTaskRemoved(rootIntent);
+    }
 }

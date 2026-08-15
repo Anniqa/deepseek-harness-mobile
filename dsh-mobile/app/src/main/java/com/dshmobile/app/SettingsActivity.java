@@ -128,6 +128,41 @@ public class SettingsActivity extends Activity {
         brlp.topMargin = Ui.dp(this, 12);
         list.addView(btnRow, brlp);
 
+        // ---- 后台保活 ----
+        // 划卡清任务被杀是 OEM 行为（荣耀/MagicOS 默认杀整进程），App 侧只能
+        // 尽量降低被杀概率：电池优化白名单 + 引导用户开「自启动/允许后台活动」。
+        addHeader("后台保活（防止划卡后服务被杀）");
+        LinearLayout keepCard = Ui.card(this);
+        android.os.PowerManager pm = (android.os.PowerManager) getSystemService(POWER_SERVICE);
+        boolean ignoring = pm != null && pm.isIgnoringBatteryOptimizations(getPackageName());
+        addRow(keepCard, "忽略电池优化",
+                ignoring ? "已加入白名单 ✓" : "未加入 — 点这里去开启",
+                v -> {
+                    android.os.PowerManager p = (android.os.PowerManager) getSystemService(POWER_SERVICE);
+                    if (p != null && !p.isIgnoringBatteryOptimizations(getPackageName())) {
+                        try {
+                            Intent i = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+                            i.setData(Uri.parse("package:" + getPackageName()));
+                            startActivity(i);
+                        } catch (Exception e) {
+                            toast("无法打开电池优化设置");
+                        }
+                    }
+                });
+        keepCard.addView(Ui.divider(this));
+        addRow(keepCard, "自启动 / 允许后台活动",
+                "荣耀等机型必须手动开启，点这里跳到应用详情：耗电详情/启动管理 → 允许自启动、允许后台活动",
+                v -> {
+                    try {
+                        Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                        i.setData(Uri.parse("package:" + getPackageName()));
+                        startActivity(i);
+                    } catch (Exception e) {
+                        toast("无法打开应用详情页");
+                    }
+                });
+        list.addView(keepCard, cardLp());
+
         // ---- 镜像 ----
         addHeader("下载镜像（下次安装生效）");
         LinearLayout mirrorCard = Ui.card(this);
