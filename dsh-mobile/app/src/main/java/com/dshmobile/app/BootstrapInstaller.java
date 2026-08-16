@@ -193,23 +193,38 @@ public final class BootstrapInstaller {
             File gxx = new File(rootfs, "usr/bin/g++");
             if (!gxx.isFile()) {
                 stage("安装编译工具链", 74);
-                // 上次安装尝试若被系统杀掉（切后台/清理任务），容器里的 apt-get
-                // 会变孤儿继续持有 dpkg 锁，重试永远 "Could not get lock"——先清理
-                killStaleAptProcesses();
-                runInContainer(Arrays.asList("/usr/bin/apt-get",
-                        "-o", "DPkg::Lock::Timeout=180", "update"), 74, 78);
-                checkCancelled();
-                // 上次若在 dpkg 配置阶段被中断，直接 install 会报
-                // "dpkg was interrupted"——先修复半配置状态（无可修复时返回 0）
-                try {
-                    runInContainer(Arrays.asList("/usr/bin/dpkg", "--configure", "-a"), 78, 78);
-                } catch (Exception e) {
-                    log("dpkg 状态修复未完成（忽略，继续安装）");
+                // 保底重试：网络/源抖动导致失败时清理重试一次，仍失败则跳过——
+                // 不中断整个安装（node-pty 在服务启动前还有 HarnessService 的兜底重编）。
+                boolean toolchainOk = false;
+                for (int attempt = 1; attempt <= 2 && !toolchainOk && !cancelled; attempt++) {
+                    try {
+                        // 上次安装尝试若被系统杀掉（切后台/清理任务），容器里的 apt-get
+                        // 会变孤儿继续持有 dpkg 锁，重试永远 "Could not get lock"——先清理
+                        killStaleAptProcesses();
+                        runInContainer(Arrays.asList("/usr/bin/apt-get",
+                                "-o", "DPkg::Lock::Timeout=180", "update"), 74, 78);
+                        checkCancelled();
+                        // 上次若在 dpkg 配置阶段被中断，直接 install 会报
+                        // "dpkg was interrupted"——先修复半配置状态（无可修复时返回 0）
+                        try {
+                            runInContainer(Arrays.asList("/usr/bin/dpkg", "--configure", "-a"), 78, 78);
+                        } catch (Exception e) {
+                            log("dpkg 状态修复未完成（忽略，继续安装）");
+                        }
+                        runInContainer(Arrays.asList("/usr/bin/apt-get",
+                                "-o", "DPkg::Lock::Timeout=180",
+                                "install", "-y", "--no-install-recommends", "python3", "make", "g++",
+                                "ca-certificates"), 78, 82);
+                        toolchainOk = gxx.isFile();
+                    } catch (Exception e) {
+                        if (cancelled) throw e;
+                        log("编译工具链安装失败（第 " + attempt + " 次）: " + e.getMessage());
+                    }
                 }
-                runInContainer(Arrays.asList("/usr/bin/apt-get",
-                        "-o", "DPkg::Lock::Timeout=180",
-                        "install", "-y", "--no-install-recommends", "python3", "make", "g++",
-                        "ca-certificates"), 78, 82);
+                if (!toolchainOk) {
+                    log("⚠ 编译工具链安装失败，已跳过。node-pty 会在服务启动时自动重试编译；"
+                            + "也可在网络好转后到设置里重置容器重装。");
+                }
             } else {
                 log("编译工具链已存在，跳过");
             }
@@ -244,13 +259,19 @@ public final class BootstrapInstaller {
             // pty.node 失败）。此步独立于上面的 install：已装坏的环境重跑安装时
             // 也能修复；服务启动前 HarnessService 也会做同样的自检兜底。
             if (NodePtyFixer.needsFix(rootfs)) {
-                stage("编译 node-pty 原生模块", 97);
-                log("node-pty 缺少 pty.node，正在容器内重建…");
-                File installLog = new File(ProotRunner.baseDir(ctx), "install.log");
-                if (!NodePtyFixer.fix(ctx, installLog)) {
-                    throw new IOException("node-pty 原生模块重建失败，请到设置查看日志");
+                if (!new File(rootfs, "usr/bin/g++").isFile()) {
+                    // 工具链步骤已被跳过/失败：这里必然编译不过，不硬失败——
+                    // 服务启动前 HarnessService 会带工具链重试（网络恢复后自愈）
+                    log("⚠ 无编译工具链，跳过 node-pty 编译（服务启动时会自动重试）");
+                } else {
+                    stage("编译 node-pty 原生模块", 97);
+                    log("node-pty 缺少 pty.node，正在容器内重建…");
+                    File installLog = new File(ProotRunner.baseDir(ctx), "install.log");
+                    if (!NodePtyFixer.fix(ctx, installLog)) {
+                        throw new IOException("node-pty 原生模块重建失败，请到设置查看日志");
+                    }
+                    log("node-pty 原生模块就绪");
                 }
-                log("node-pty 原生模块就绪");
             }
 
             checkCancelled();
@@ -276,18 +297,29 @@ public final class BootstrapInstaller {
             return;
         }
         stage("安装 SSH 服务", 97);
-        // 与工具链安装同理：先清残留 apt 进程与 dpkg 半配置状态
-        killStaleAptProcesses();
-        runInContainer(Arrays.asList("/usr/bin/apt-get",
-                "-o", "DPkg::Lock::Timeout=180", "update"), 97, 97);
-        try {
-            runInContainer(Arrays.asList("/usr/bin/dpkg", "--configure", "-a"), 97, 97);
-        } catch (Exception e) {
-            log("dpkg 状态修复未完成（忽略，继续安装）");
+        // 保底重试：失败重试一次，再失败则跳过（服务启动前还有
+        // ensureSshServerInstalled 兜底补装，不至于整个安装被拖死）
+        for (int attempt = 1; attempt <= 2 && !cancelled; attempt++) {
+            try {
+                // 与工具链安装同理：先清残留 apt 进程与 dpkg 半配置状态
+                killStaleAptProcesses();
+                runInContainer(Arrays.asList("/usr/bin/apt-get",
+                        "-o", "DPkg::Lock::Timeout=180", "update"), 97, 97);
+                try {
+                    runInContainer(Arrays.asList("/usr/bin/dpkg", "--configure", "-a"), 97, 97);
+                } catch (Exception e) {
+                    log("dpkg 状态修复未完成（忽略，继续安装）");
+                }
+                runInContainer(Arrays.asList("/usr/bin/apt-get",
+                        "-o", "DPkg::Lock::Timeout=180",
+                        "install", "-y", "--no-install-recommends", "openssh-server"), 97, 99);
+                return;
+            } catch (Exception e) {
+                if (cancelled) throw e;
+                log("SSH 服务安装失败（第 " + attempt + " 次）: " + e.getMessage());
+            }
         }
-        runInContainer(Arrays.asList("/usr/bin/apt-get",
-                "-o", "DPkg::Lock::Timeout=180",
-                "install", "-y", "--no-install-recommends", "openssh-server"), 97, 99);
+        log("⚠ SSH 服务安装失败，已跳过（服务启动时会自动重试补装）");
     }
 
     /**
