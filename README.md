@@ -1,8 +1,11 @@
-# DSH 手机版（dsh-mobile）
+# DSH 手机版（dsh-mobile）/ DSH Mobile for Android
 
 > 本仓库是 [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness) 的 fork，新增 Android 手机版（[`dsh-mobile/`](dsh-mobile/)）。上游代码保持原样，手机版相关改动都在 `dsh-mobile/` 目录内。
+> This is a fork of [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness) with an Android port under [`dsh-mobile/`](dsh-mobile/). Upstream code is kept untouched; everything mobile lives in that directory.
 
-[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的 Android 手机版：App 内置 proot + Ubuntu 22.04 容器，容器内运行 Node.js + `@deepseek-ai/dsh web`，用 WebView 加载其 Web UI 并注入移动端适配样式，界面为 DeepSeek 同款风格。
+**中文**：DeepSeek Harness 的 Android 手机版。App 内置 proot + Ubuntu 22.04 容器，容器内运行 Node.js + `@deepseek-ai/dsh web`，用 WebView 加载其 Web UI 并注入移动端适配样式（触控手势、抽屉侧栏、窄屏布局），界面为 DeepSeek 同款风格；安装走国内镜像，支持容器 SSH、后台保活。
+
+**English**: An Android port of DeepSeek Harness. The app bundles a proot + Ubuntu 22.04 container running Node.js and `@deepseek-ai/dsh web`, loads the Web UI in a WebView with mobile-optimized styles and touch gestures (edge-swipe drawer, narrow-screen layouts), and installs via China-friendly mirrors. It also adds container SSH and background keep-alive.
 
 ## 下载
 
