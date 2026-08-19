@@ -21,9 +21,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       id-token: write
-      contents: read
-      pull-requests: read
-      issues: read
+      contents: write
+      pull-requests: write
+      issues: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -34,8 +34,12 @@ jobs:
         uses: anomalyco/opencode/github@latest
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           model: opencode/deepseek-v4-flash-free
+          # 不走 OpenCode App 的 OIDC 换票（未安装该 App 会报 Failed to parse JSON），
+          # 直接用 workflow 自带的 GITHUB_TOKEN
+          use_github_token: 'true'
 
   # 上游同步：仅当 upstream/master 领先时才触发 opencode
   sync-upstream:
@@ -44,7 +48,7 @@ jobs:
     permissions:
       id-token: write
       contents: write
-      pull-requests: read
+      pull-requests: write
       issues: write
     steps:
       - name: Checkout repository（完整历史）
@@ -69,8 +73,10 @@ jobs:
         uses: anomalyco/opencode/github@latest
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           model: opencode/deepseek-v4-flash-free
+          use_github_token: 'true'
           prompt: |
             任务：把 upstream/master（deepseek-ai/deepseek-harness）合并进本仓库 master，并做严谨
             的冲突检验与手机版适配。本仓库是上游的 fork，自有改动全部隔离在 dsh-mobile/ 目录
