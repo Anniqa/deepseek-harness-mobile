@@ -214,7 +214,7 @@ public final class BootstrapInstaller {
                         runInContainer(Arrays.asList("/usr/bin/apt-get",
                                 "-o", "DPkg::Lock::Timeout=180",
                                 "install", "-y", "--no-install-recommends", "python3", "make", "g++",
-                                "ca-certificates"), 78, 82);
+                                "ca-certificates", "git"), 78, 82);
                         toolchainOk = gxx.isFile();
                     } catch (Exception e) {
                         if (cancelled) throw e;
