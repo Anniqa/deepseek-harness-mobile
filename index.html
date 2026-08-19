@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DSH 手机版 · DeepSeek Harness for Android</title>
+<meta name="description" content="DeepSeek Harness 的 Android 手机版：内置 Ubuntu 容器完整运行 dsh，WebView 移动端适配。Android port of DeepSeek Harness.">
+<style>
+  :root {
+    --brand: #4D6BFE;
+    --brand-soft: #EEF2FF;
+    --ink: #1F2329;
+    --ink-2: #4E5564;
+    --ink-3: #8F959E;
+    --line: #EBEDF0;
+    --bg: #FFFFFF;
+    --bg-soft: #F7F8FA;
+    --dark: #0B1020;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", Roboto, sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+
+  /* ---------- Hero ---------- */
+  .hero {
+    background: radial-gradient(1200px 500px at 70% -10%, #1b2550 0%, var(--dark) 55%, #070a14 100%);
+    color: #fff;
+    padding: 72px 0 88px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: radial-gradient(600px 300px at 20% 110%, rgba(77,107,254,.28), transparent 60%);
+    pointer-events: none;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; letter-spacing: .02em; position: relative; z-index: 1; }
+  .brand .whale { width: 26px; height: 26px; }
+  .brand .tag {
+    font-size: 10px; font-weight: 800; letter-spacing: .12em;
+    background: var(--brand); color: #fff; border-radius: 4px; padding: 2px 6px;
+  }
+  .eyebrow {
+    margin-top: 56px; font-size: 13px; font-weight: 600; letter-spacing: .18em;
+    color: #9db2ff; text-transform: uppercase; position: relative; z-index: 1;
+  }
+  .hero h1 {
+    margin-top: 12px; font-size: clamp(34px, 6vw, 56px); line-height: 1.15;
+    font-weight: 800; letter-spacing: -.01em; position: relative; z-index: 1;
+  }
+  .hero h1 .accent { color: #8fa6ff; }
+  .hero .sub {
+    margin-top: 18px; font-size: clamp(15px, 2.4vw, 18px); color: #B9C2D6;
+    max-width: 640px; position: relative; z-index: 1;
+  }
+  .cta { margin-top: 36px; display: flex; flex-wrap: wrap; gap: 14px; position: relative; z-index: 1; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 14px 26px; border-radius: 12px; font-size: 15px; font-weight: 700;
+    text-decoration: none; transition: transform .12s ease, box-shadow .12s ease;
+  }
+  .btn:active { transform: scale(.97); }
+  .btn-primary { background: var(--brand); color: #fff; box-shadow: 0 8px 24px rgba(77,107,254,.35); }
+  .btn-ghost { background: rgba(255,255,255,.08); color: #E5E9F5; border: 1px solid rgba(255,255,255,.18); }
+  .hero .note { margin-top: 14px; font-size: 12.5px; color: #7C86A0; position: relative; z-index: 1; }
+
+  /* ---------- Sections ---------- */
+  section { padding: 64px 0; }
+  .sec-eyebrow { font-size: 12.5px; font-weight: 700; letter-spacing: .16em; color: var(--brand); text-transform: uppercase; }
+  h2 { margin-top: 10px; font-size: clamp(24px, 4vw, 34px); font-weight: 800; letter-spacing: -.01em; }
+  .sec-sub { margin-top: 12px; color: var(--ink-2); max-width: 680px; }
+
+  .cards { margin-top: 36px; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+  .card {
+    background: var(--bg-soft); border: 1px solid var(--line); border-radius: 16px; padding: 24px;
+  }
+  .card h3 { font-size: 16.5px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+  .card h3 .num {
+    flex: none; width: 26px; height: 26px; border-radius: 8px; background: var(--brand-soft);
+    color: var(--brand); font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center;
+  }
+  .card p { margin-top: 10px; font-size: 14px; color: var(--ink-2); }
+
+  .feats { margin-top: 32px; display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px 24px; }
+  .feat { display: flex; gap: 10px; align-items: flex-start; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; }
+  .feat .dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--brand); margin-top: 8px; }
+  .feat b { font-size: 14.5px; display: block; }
+  .feat span { font-size: 13px; color: var(--ink-3); }
+
+  /* ---------- Download ---------- */
+  .dl { background: var(--bg-soft); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .dl-box { display: flex; flex-wrap: wrap; align-items: center; gap: 28px; }
+  .dl-box .info { flex: 1 1 320px; }
+  .dl-box .actions { flex: 0 0 auto; display: flex; flex-direction: column; gap: 12px; }
+  .req { margin-top: 14px; font-size: 13px; color: var(--ink-3); }
+  .req li { margin-left: 18px; }
+
+  footer { padding: 40px 0 56px; color: var(--ink-3); font-size: 13px; }
+  footer a { color: var(--brand); text-decoration: none; }
+  footer .row { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-top: 8px; }
+
+  code, .code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    background: var(--brand-soft); color: #3B56D4; border-radius: 6px; padding: 1px 7px; font-size: .92em;
+  }
+  .shell {
+    margin-top: 20px; background: var(--dark); color: #C9D4F2; border-radius: 12px;
+    padding: 16px 18px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 13.5px; overflow-x: auto; white-space: nowrap;
+  }
+  .shell .p { color: #7C86A0; user-select: none; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="brand">
+      <svg class="whale" viewBox="0 0 24 24" fill="none"><path d="M2 13.5c0-5 4-9 9.5-9 4.4 0 8.2 2.9 9.3 6.9.9-.4 1.9-.4 2.7.1-.6-1-1-1.7-1.9-2.6C19.5 6.6 16 5 12 5 6.5 5 2 9.5 2 15c0 3.4 1.8 6.4 4.5 8.1-.9-1.3-1.5-2.9-1.5-4.6 0-1.4.4-2.7 1-3.8-.9.5-1.7.6-2.7.3.7 1.1 1.2 1.9 2.1 2.7C6.6 19.4 9.4 20.5 12.5 20.5c6 0 10.5-4 10.5-9.5 0-.5 0-1-.1-1.5-.3 1.4-1 2.7-2.1 3.6-.9.7-2 1-3.1.9.5-1 .8-2.2.8-3.5 0-4.4-3.6-8-8-8-1.9 0-3.7.7-5.1 1.8C6.9 5.7 9 4.5 11.5 4.5" fill="currentColor" opacity=".9"/></svg>
+      <span>deepseek</span><span class="tag">HARNESS</span>
+    </div>
+    <div class="eyebrow">DSH 手机版 · Android Port</div>
+    <h1>Agent = Model + Harness.<br><span class="accent">现在，装进口袋。</span></h1>
+    <p class="sub">
+      DeepSeek Harness 的 Android 手机版：App 内置 proot + Ubuntu 22.04 容器，在本地完整运行
+      Node.js 与 <b>dsh</b>，WebView 加载 Web UI 并注入移动端适配——和桌面端同一个 Agent，
+      为手机重新打造。<br>
+      <span style="color:#7C86A0">An Android port of DeepSeek Harness — the full agent, running locally in your pocket.</span>
+    </p>
+    <div class="cta">
+      <a class="btn btn-primary" href="https://github.com/Ajwyunsx/deepseek-harness-mobile/releases/latest/download/dsh-mobile.apk">⬇ 下载 APK（最新版）</a>
+      <a class="btn btn-ghost" href="https://github.com/Ajwyunsx/deepseek-harness-mobile">GitHub 仓库</a>
+    </div>
+    <p class="note">Android 8.0+（arm64） · 首次启动需联网下载约 400MB 容器组件 · <a href="https://github.com/Ajwyunsx/deepseek-harness-mobile/releases" style="color:#9db2ff">全部版本</a></p>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <div class="sec-eyebrow">How it works</div>
+    <h2>手机里跑着一个完整的 Harness</h2>
+    <p class="sec-sub">不依赖云端、不需要 root。dsh 本体运行在 App 自带的 Ubuntu 容器里，网页界面按手机触控重做。</p>
+    <div class="cards">
+      <div class="card">
+        <h3><span class="num">1</span>内置 Ubuntu 容器</h3>
+        <p>proot 运行完整 Ubuntu 22.04（aarch64）rootfs 与 Node.js，容器内 <code>dsh web</code> 提供与桌面一致的能力。首次启动自动联网安装（国内镜像源）。</p>
+      </div>
+      <div class="card">
+        <h3><span class="num">2</span>移动端适配 Web UI</h3>
+        <p>注入式移动样式：覆盖式抽屉侧栏（左缘右滑呼出）、轨迹详情整宽覆盖、弹窗不溢出、触控目标加大、tooltip 自动消失。</p>
+      </div>
+      <div class="card">
+        <h3><span class="num">3</span>与手机互通</h3>
+        <p>外置 SD 卡映射进容器工作区（<code>sd/</code>、<code>shared/</code> 两个入口），文件双向传递；系统文件管理器直接上传附件。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="sec-eyebrow">Mobile first</div>
+    <h2>为手机做的那些细节</h2>
+    <div class="feats">
+      <div class="feat"><span class="dot"></span><div><b>侧栏抽屉手势</b><span>左缘右滑呼出 / 左滑收起 / 点遮罩收起，选会话自动收起</span></div></div>
+      <div class="feat"><span class="dot"></span><div><b>轨迹详情整宽查看</b><span>Trajectory 面板全宽覆盖，Summary 不被压塌，逐步骤检视工具调用</span></div></div>
+      <div class="feat"><span class="dot"></span><div><b>容器 SSH 自启</b><span><code>ssh dsh@127.0.0.1 -p 8022</code>，本机终端/Termux 直连，电脑走 adb forward</span></div></div>
+      <div class="feat"><span class="dot"></span><div><b>国内镜像安装</b><span>rootfs / Node.js / Termux / apt 走中科大源，npm 走 npmmirror</span></div></div>
+      <div class="feat"><span class="dot"></span><div><b>后台保活</b><span>前台服务持有容器，附电池白名单与自启动引导</span></div></div>
+      <div class="feat"><span class="dot"></span><div><b>文件上传</b><span>调起系统文件管理器选择附件，多选与类型过滤</span></div></div>
+      <div class="feat"><span class="dot"></span><div><b>老设备兼容</b><span>内置老 WebView polyfill（AbortSignal.any 等），内核过旧主动提示</span></div></div>
+      <div class="feat"><span class="dot"></span><div><b>安装保底重试</b><span>网络抖动自动重试，失败跳过不装死，服务启动自动补齐</span></div></div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="sec-eyebrow">Everything is a plugin</div>
+    <h2>和桌面端同一个 Agent</h2>
+    <p class="sec-sub">
+      模型是灵魂，Harness 让 Agent 理解环境、使用工具、持续工作。模型所见的的一切都记录在只追加的会话日志里——提示词、推理、工具调用与结果、子代理调度，全部可在「轨迹」视图按来源检视。
+      四种模式与桌面端一致：<b>Standard</b> 全工具集 · <b>Code</b> 代码编排多轮工具调用 · <b>Minimal</b> 双工具基准环境 · <b>Creator</b> 检视运行时、试验插件、编写自定义预设。
+    </p>
+    <div class="shell"><span class="p">$</span> ssh dsh@127.0.0.1 -p 8022&nbsp;&nbsp;<span class="p"># 本机终端直连容器</span></div>
+  </div>
+</section>
+
+<section class="dl">
+  <div class="wrap">
+    <div class="dl-box">
+      <div class="info">
+        <div class="sec-eyebrow">Get started</div>
+        <h2>现在就装上</h2>
+        <ul class="req">
+          <li>Android 8.0+，arm64 设备（约需 1GB 可用存储）</li>
+          <li>安装 APK 后首启进入向导，联网下载容器组件（约 400MB，国内镜像）</li>
+          <li>进入 Web 界面后按引导配置模型 API key 即可开始对话</li>
+          <li>荣耀/MagicOS 用户：设置 → 后台保活，按引导开启两项授权防划卡被杀</li>
+        </ul>
+      </div>
+      <div class="actions">
+        <a class="btn btn-primary" href="https://github.com/Ajwyunsx/deepseek-harness-mobile/releases/latest/download/dsh-mobile.apk">⬇ 下载最新 APK</a>
+        <a class="btn btn-ghost" style="color:var(--ink);border-color:var(--line);background:#fff" href="https://github.com/Ajwyunsx/deepseek-harness-mobile/releases">查看全部版本</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>DSH 手机版（dsh-mobile） · Fork of <a href="https://github.com/deepseek-ai/deepseek-harness">deepseek-ai/deepseek-harness</a> · MIT License</div>
+    <div class="row">
+      <a href="https://github.com/Ajwyunsx/deepseek-harness-mobile">GitHub</a>
+      <a href="https://github.com/Ajwyunsx/deepseek-harness-mobile/releases">Releases</a>
+      <a href="https://github.com/Ajwyunsx/deepseek-harness-mobile/issues">Issues</a>
+      <a href="https://www.deepseek.com/harness/">DeepSeek Harness 官网</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
