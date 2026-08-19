@@ -39,7 +39,7 @@ cd dsh-mobile
 # 输出 app/build/outputs/apk/release/app-release.apk
 ```
 
-注意：本仓库 `gradle.properties` 中 `android.aapt2FromMavenOverride=/usr/bin/aapt2` 是 aarch64 Linux 主机的 workaround，x86_64 主机请删除该行。签名配置在 `app/build.gradle.kts`（自带调试级 keystore，正式发布请更换）。
+注意：aarch64 Linux 主机（Google 只发布 x86_64 aapt2）需要 box64，构建时传 `./gradlew -Pandroid.aapt2FromMavenOverride=$PWD/tools/aapt2`（包装脚本会从 `ANDROID_HOME` 或 `local.properties` 的 sdk.dir 找 SDK）；x86_64 主机与 CI 直接构建即可。JDK 17+ 用环境默认（如需指定请自行在 gradle.properties 加 `org.gradle.java.home`）。签名配置在 `app/build.gradle.kts`（自带调试级 keystore，正式发布请更换）。
 
 ## 结构
 

@@ -82,8 +82,30 @@ public class MainActivity extends Activity {
         }
 
         buildUi();
+        warnIfWebViewTooOld();
         HarnessService.startService(this);
         waitForServerAndLoad();
+    }
+
+    /** 老 WebView（Chrome < 116，EMUI/旧系统常见）缺一堆现代 API，
+     *  dsh 界面会报错甚至渲染进程崩溃（issue #2/#4）。polyfill 已尽力补，
+     *  仍提示用户去更新内核——这是治本。 */
+    private void warnIfWebViewTooOld() {
+        try {
+            android.content.pm.PackageInfo pi = android.webkit.WebView.getCurrentWebViewPackage();
+            String v = pi == null ? null : pi.versionName;
+            if (v == null) return;
+            int dot = v.indexOf('.');
+            int major = Integer.parseInt(dot > 0 ? v.substring(0, dot) : v);
+            if (major < 116) {
+                android.widget.Toast.makeText(this,
+                        "浏览器内核过旧（" + v + "），dsh 界面可能报错或闪退，"
+                                + "请更新 Android System WebView 或 Chrome",
+                        android.widget.Toast.LENGTH_LONG).show();
+            }
+        } catch (Exception ignored) {
+            // 版本号解析不了就不提示，不阻断主流程
+        }
     }
 
     private void buildUi() {
@@ -106,6 +128,7 @@ public class MainActivity extends Activity {
             @Override
             public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
                 pageFailed = false;
+                injector.injectEarlyPolyfill(view);
             }
 
             @Override

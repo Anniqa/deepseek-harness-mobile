@@ -13,10 +13,17 @@ public final class MobileUiInjector {
 
     private final String css;
     private final String js;
+    private final String earlyPolyfillJs;
 
     public MobileUiInjector(Context ctx) {
         css = readAsset(ctx, "mobile.css");
         js = readAsset(ctx, "inject.js");
+        earlyPolyfillJs = readAsset(ctx, "early-polyfill.js");
+    }
+
+    /** 页面开始加载时注入老 WebView 兼容 polyfill（须在 dsh 自身脚本运行前）。 */
+    public void injectEarlyPolyfill(WebView webView) {
+        webView.evaluateJavascript(earlyPolyfillJs, null);
     }
 
     /** 页面加载完成后注入。幂等，可重复调用。 */

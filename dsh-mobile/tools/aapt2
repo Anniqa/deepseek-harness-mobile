@@ -1,2 +1,15 @@
 #!/bin/bash
-exec box64 /root/android-sdk/build-tools/35.0.0/aapt2 "$@"
+# aarch64 Linux 主机的 aapt2 workaround：Google 只发布 x86_64 二进制，
+# 用 box64 跑 SDK 里的 x86_64 aapt2。
+# SDK 位置：优先 $ANDROID_HOME，其次项目 local.properties 的 sdk.dir。
+SDK="${ANDROID_HOME:-$(sed -n 's/^sdk.dir=//p' "$(dirname "$0")/../local.properties" 2>/dev/null)}"
+if [ -z "$SDK" ]; then
+  echo "tools/aapt2: 未找到 SDK（设 ANDROID_HOME 或 local.properties 的 sdk.dir）" >&2
+  exit 1
+fi
+AAPT2="$(ls -d "$SDK"/build-tools/*/aapt2 2>/dev/null | sort -V | tail -1)"
+if [ -z "$AAPT2" ]; then
+  echo "tools/aapt2: $SDK/build-tools 下没有 aapt2" >&2
+  exit 1
+fi
+exec box64 "$AAPT2" "$@"

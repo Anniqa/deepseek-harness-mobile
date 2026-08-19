@@ -61,9 +61,13 @@ public class HarnessService extends Service {
         String action = intent == null ? ACTION_START : intent.getAction();
         if (ACTION_STOP.equals(action)) {
             wantRun = false;
-            stopContainer();
-            stopForeground(true);
-            stopSelf();
+            // stopContainer 的 waitFor 可能阻塞，onStartCommand 跑在主线程，
+            // 容器卡住不退时直接 ANR（issue #8）——停容器放后台线程
+            executor.execute(() -> {
+                stopContainer();
+                stopForeground(true);
+                stopSelf();
+            });
             return START_NOT_STICKY;
         }
         startForeground(NOTIF_ID, buildNotification("正在启动容器…"));
@@ -138,11 +142,14 @@ public class HarnessService extends Service {
         if (p != null) {
             p.destroy();
             try {
-                p.waitFor();
+                // 有界等待：容器卡住不退时不能无限阻塞（调用方可能在主线程）
+                if (!p.waitFor(3, java.util.concurrent.TimeUnit.SECONDS)) {
+                    p.destroyForcibly();
+                }
             } catch (InterruptedException ignored) {
                 Thread.currentThread().interrupt();
+                p.destroyForcibly();
             }
-            p.destroyForcibly();
         }
         Process s = sshdProcess;
         sshdProcess = null;

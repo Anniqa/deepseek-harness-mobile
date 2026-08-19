@@ -5,6 +5,34 @@
   if (window.__dshMobileInjected) return;
   window.__dshMobileInjected = true;
 
+  // 老 WebView（Chrome < 116，Android 12 及以下的系统 WebView 常见）
+  // 没有 AbortSignal.any/timeout，dsh 的工作区选择器等会直接抛
+  // "AbortSignal.any is not a function"（issue #2/#4）。补最小实现。
+  if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.any !== 'function') {
+    AbortSignal.any = function (signals) {
+      var ctrl = new AbortController();
+      for (var i = 0; i < signals.length; i++) {
+        var s = signals[i];
+        if (!s) continue;
+        if (s.aborted) { ctrl.abort(s.reason); return ctrl.signal; }
+        s.addEventListener('abort', (function (sig) {
+          return function () { ctrl.abort(sig.reason); };
+        })(s), { once: true });
+      }
+      return ctrl.signal;
+    };
+  }
+  if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout !== 'function') {
+    AbortSignal.timeout = function (ms) {
+      var ctrl = new AbortController();
+      setTimeout(function () {
+        try { ctrl.abort(new DOMException('The operation timed out.', 'TimeoutError')); }
+        catch (e) { ctrl.abort(); }
+      }, ms);
+      return ctrl.signal;
+    };
+  }
+
   // SPA 路由切换 / 主题切换后确保 viewport 不被改回桌面宽度
   function ensureViewport() {
     var v = document.querySelector('meta[name=viewport]');
@@ -179,8 +207,10 @@
   function clampPopovers() {
     if (window.innerWidth > 700) return;
     var vw = window.innerWidth;
+    // 注：_popover/_floating 类名在 rc.6/rc.7 DOM 中不存在（issue #5），
+    // tooltip 气泡用 [role="tooltip"] 匹配而非类名
     var els = document.querySelectorAll(
-      'div[class*="_menu"], div[class*="_popover"], div[class*="_dropdown"], div[class*="_tooltip"], div[class*="_floating"]');
+      'div[class*="_menu"], div[class*="_dropdown"], [role="tooltip"]');
     for (var i = 0; i < els.length; i++) {
       var el = els[i];
       var cs = window.getComputedStyle(el);
@@ -428,6 +458,12 @@
     if (!t || !t.closest) return;
     var col = t.closest('div[class*="_sidebarCol"]');
     if (!col) return;
+    // 行内 ⋯ 按钮和弹出的菜单不是"选中行"：绝不能触发强制收起——
+    // 否则菜单刚打开抽屉就被收掉、菜单被卸载，归档/重命名永远点不中，
+    // 表现就是"点归档立即退回聊天界面但没归上"（issue #1）
+    if (t.closest('[class*="_rowActions"], [class*="_menu"], [role="menu"], [role="menuitem"], [role="dialog"]')) {
+      return;
+    }
     if (t.closest('[class*="_sessionRow"], [class*="_workspaceRow"], [class*="_projectRow"], [class*="_newSession"], [data-slot^="sidebar.session"]')) {
       enforceClosed(Date.now() + 6000);
     }

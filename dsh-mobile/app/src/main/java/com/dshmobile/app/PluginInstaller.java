@@ -80,7 +80,16 @@ public final class PluginInstaller {
         reader.start();
         boolean done = p.waitFor(timeoutMs, TimeUnit.MILLISECONDS);
         if (!done) {
+            // 先礼后兵：pnpm 下载/编译中可能不理 SIGTERM，强杀并确认退出，
+            // 否则残留进程占着容器资源与 npm 锁（issue #9）
             p.destroy();
+            try {
+                if (!p.waitFor(3, TimeUnit.SECONDS)) p.destroyForcibly();
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                p.destroyForcibly();
+            }
+            reader.join(1500);
             return new Result(false, "安装超时（" + (timeoutMs / 60000) + " 分钟）\n" + tail(buf));
         }
         reader.join(3000);

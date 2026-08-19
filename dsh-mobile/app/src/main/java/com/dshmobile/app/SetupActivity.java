@@ -20,6 +20,10 @@ import android.widget.TextView;
 /** 首启安装向导：DeepSeek 风格，下载/解压/安装进度与日志。 */
 public class SetupActivity extends Activity implements BootstrapInstaller.Listener {
 
+    /** 安装线程全局唯一标志：旋转屏幕/系统重建 Activity 会重跑 onCreate，
+     *  没有它就会出现两个安装线程并发写同一 rootfs（issue #6）。 */
+    private static volatile boolean installRunning;
+
     private ProgressBar progress;
     private TextView stageText;
     private TextView logView;
@@ -110,8 +114,21 @@ public class SetupActivity extends Activity implements BootstrapInstaller.Listen
     }
 
     private void startInstall() {
+        if (installRunning) {
+            // 已有安装线程在跑（重建前的实例仍在工作）：本实例退出，
+            // 安装在后台完成，下次启动按 setupDone 自动进主界面
+            finish();
+            return;
+        }
+        installRunning = true;
         installer = new BootstrapInstaller(this, this);
-        worker = new Thread(installer::run, "dsh-bootstrap");
+        worker = new Thread(() -> {
+            try {
+                installer.run();
+            } finally {
+                installRunning = false;
+            }
+        }, "dsh-bootstrap");
         worker.start();
     }
 
