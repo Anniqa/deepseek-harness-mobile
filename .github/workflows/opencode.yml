@@ -35,7 +35,7 @@ jobs:
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
-          model: opencode/deepseek-v4-flash-free
+          model: opencode-go/deepseek-v4-flash
 
   # 上游同步：仅当 upstream/master 领先时才触发 opencode
   sync-upstream:
@@ -70,7 +70,7 @@ jobs:
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
-          model: opencode/deepseek-v4-flash-free
+          model: opencode-go/deepseek-v4-flash
           prompt: |
             任务：把 upstream/master（deepseek-ai/deepseek-harness）合并进本仓库 master，并做严谨
             的冲突检验与手机版适配。本仓库是上游的 fork，自有改动全部隔离在 dsh-mobile/ 目录
