@@ -139,6 +139,27 @@ div[class*="_trigger"] {
   div[class*="_centerCol"] div[class*="_headerUtilities"] {
     flex: 0 0 auto !important;
   }
+  /* 提问卡片（user-questions 的确认弹窗）：桌面 footer 是
+     「页码 | 错误提示 | 跳过+确认」一整行不换行，手机上内容超宽，
+     最右侧的确认键被挤出卡片（card overflow:hidden 直接裁掉）——
+     表现为"确认键点不到"。footer 允许折行、动作组独占一行，
+     两个按钮加大到 44px 触控目标 */
+  div[class*="_centerCol"] [class*="_footer"]:has([class*="_footerActions"]) {
+    flex-wrap: wrap !important;
+    row-gap: 8px;
+  }
+  div[class*="_centerCol"] [class*="_footerActions"] {
+    flex: 1 1 100% !important;
+    justify-content: flex-end !important;
+    gap: 8px !important;
+  }
+  div[class*="_centerCol"] [class*="_footerActions"] button {
+    flex: 1 1 0 !important;
+    min-height: 44px !important;
+    max-width: 50% !important;
+    white-space: nowrap;
+  }
+
   /* 列宽拖拽手柄在触屏上没用，且会形成多余分隔线 */
   div[class*="_handle"] {
     display: none !important;
