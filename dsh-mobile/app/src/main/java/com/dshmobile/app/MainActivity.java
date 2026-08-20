@@ -147,6 +147,19 @@ public class MainActivity extends Activity {
                     scheduleReload();
                 }
             }
+
+            @Override
+            public boolean onRenderProcessGone(WebView view,
+                                               android.webkit.RenderProcessGoneDetail detail) {
+                // Android 8+（API 26）渲染进程崩溃时若不在此返回 true，系统会把
+                // 整个 App 进程一起杀掉（"WebView render process gone"）。Android 14
+                // （API 34）的 Pixel/Samsung 等机型加载 dsh UI 时渲染进程偶发闪退
+                // （issue #11），必须拦截并走既有的有界重试，而不是让 App 一起崩掉。
+                // 注意：返回 true 前 view 已失效，不要再调用它。
+                pageFailed = true;
+                scheduleReload();
+                return true;
+            }
         });
         webView.setWebChromeClient(new WebChromeClient() {
             /**
