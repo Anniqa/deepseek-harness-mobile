@@ -30,6 +30,11 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: 配置 git 提交身份（agent 提交修复时需要，否则 code 128）
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
       - name: Run opencode
         uses: anomalyco/opencode/github@latest
         env:
@@ -56,6 +61,11 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+
+      - name: 配置 git 提交身份
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: 检查上游是否领先
         id: check
