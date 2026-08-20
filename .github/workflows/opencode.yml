@@ -28,7 +28,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
-          persist-credentials: false
+          # agent 需要推送修复分支/PR：保留 GITHUB_TOKEN 凭据
+          persist-credentials: true
 
       - name: 配置 git 提交身份（agent 提交修复时需要，否则 code 128）
         run: |
