@@ -83,8 +83,90 @@ public class MainActivity extends Activity {
 
         buildUi();
         warnIfWebViewTooOld();
+        checkUpdate();
         HarnessService.startService(this);
         waitForServerAndLoad();
+    }
+
+    // ---------- 版本更新检查 ----------
+
+    /** 进入 App 时检查 GitHub Releases 最新版本，有新版本弹更新提示。静默失败。 */
+    private void checkUpdate() {
+        new Thread(() -> {
+            try {
+                java.net.URL url = new java.net.URL(
+                        "https://api.github.com/repos/Ajwyunsx/deepseek-harness-mobile/releases/latest");
+                java.net.HttpURLConnection c = (java.net.HttpURLConnection) url.openConnection();
+                c.setConnectTimeout(6000);
+                c.setReadTimeout(6000);
+                c.setRequestProperty("Accept", "application/vnd.github+json");
+                c.setRequestProperty("User-Agent", "dsh-mobile/" + currentVersion());
+                java.io.InputStream in = c.getInputStream();
+                java.io.ByteArrayOutputStream buf = new java.io.ByteArrayOutputStream();
+                byte[] chunk = new byte[4096];
+                int n;
+                while ((n = in.read(chunk)) != -1) buf.write(chunk, 0, n);
+                in.close();
+                c.disconnect();
+                org.json.JSONObject j = new org.json.JSONObject(buf.toString("UTF-8"));
+                String tag = j.optString("tag_name", "");
+                String notes = j.optString("body", "");
+                handler.post(() -> maybeShowUpdate(tag, notes));
+            } catch (Exception ignored) {
+                // 断网/GitHub 不可达：静默跳过，不影响使用
+            }
+        }, "dsh-update-check").start();
+    }
+
+    private void maybeShowUpdate(String tag, String notes) {
+        if (isFinishing() || tag.isEmpty()) return;
+        String latest = tag.startsWith("v") ? tag.substring(1) : tag;
+        if (compareVersion(latest, currentVersion()) <= 0) return;
+        String body = notes == null ? "" : notes.trim();
+        if (body.length() > 500) body = body.substring(0, 500) + "…";
+        new android.app.AlertDialog.Builder(this)
+                .setTitle("发现新版本 " + tag)
+                .setMessage(body.isEmpty() ? "当前 v" + currentVersion() + "，可更新到 " + tag + "。" : body)
+                .setPositiveButton("立即更新", (d, w) -> {
+                    try {
+                        // 固定名资产直链，浏览器下载后用户手动安装
+                        startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW,
+                                android.net.Uri.parse("https://github.com/Ajwyunsx/deepseek-harness-mobile/releases/latest/download/dsh-mobile.apk")));
+                    } catch (Exception e) {
+                        android.widget.Toast.makeText(this, "无法打开下载链接", android.widget.Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton("稍后", null)
+                .show();
+    }
+
+    /** 运行时读取自身 versionName（AGP 9 默认不生成 BuildConfig）。 */
+    private String currentVersion() {
+        try {
+            return getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+        } catch (Exception e) {
+            return "0";
+        }
+    }
+
+    /** 语义化版本比较：a>b 返回正数，a<b 返回负数，相等 0。 */
+    private static int compareVersion(String a, String b) {
+        String[] pa = a.split("\\."), pb = b.split("\\.");
+        int n = Math.max(pa.length, pb.length);
+        for (int i = 0; i < n; i++) {
+            int x = i < pa.length ? parseIntSafe(pa[i]) : 0;
+            int y = i < pb.length ? parseIntSafe(pb[i]) : 0;
+            if (x != y) return x - y;
+        }
+        return 0;
+    }
+
+    private static int parseIntSafe(String s) {
+        try {
+            return Integer.parseInt(s.replaceAll("[^0-9].*$", ""));
+        } catch (Exception e) {
+            return 0;
+        }
     }
 
     /** 老 WebView（Chrome < 116，EMUI/旧系统常见）缺一堆现代 API，
