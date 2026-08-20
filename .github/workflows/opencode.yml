@@ -34,8 +34,13 @@ jobs:
         uses: anomalyco/opencode/github@latest
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           model: opencode-go/deepseek-v4-flash
+          # opencode bot（App 换票）在 2026-07-15 后创建的仓库上因上游 OIDC sub
+          # 格式变更而必挂（anomalyco/opencode#37823），官方建议的 workaround
+          # 就是 use_github_token；上游修复后可移除此行恢复 bot 身份
+          use_github_token: 'true'
 
   # 上游同步：仅当 upstream/master 领先时才触发 opencode
   sync-upstream:
@@ -69,8 +74,10 @@ jobs:
         uses: anomalyco/opencode/github@latest
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           model: opencode-go/deepseek-v4-flash
+          use_github_token: 'true'
           prompt: |
             任务：把 upstream/master（deepseek-ai/deepseek-harness）合并进本仓库 master，并做严谨
             的冲突检验与手机版适配。本仓库是上游的 fork，自有改动全部隔离在 dsh-mobile/ 目录
