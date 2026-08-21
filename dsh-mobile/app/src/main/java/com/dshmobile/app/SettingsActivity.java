@@ -116,10 +116,12 @@ public class SettingsActivity extends Activity {
         Button restart = Ui.outlineButton(this, "重启服务");
         restart.setOnClickListener(v -> {
             HarnessService.stopService(this);
+            // 停止在独立线程执行（强杀兜底最长 ~3s），等旧容器确实死掉再启动，
+            // 否则启动时 isRunning() 仍为 true，runLoop 不会被拉起，服务假死
             list.postDelayed(() -> {
                 HarnessService.startService(this);
                 refresh();
-            }, 1500);
+            }, 4000);
         });
         LinearLayout.LayoutParams rbp = new LinearLayout.LayoutParams(0, Ui.dp(this, 48), 1);
         rbp.leftMargin = Ui.dp(this, 12);

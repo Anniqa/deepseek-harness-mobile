@@ -61,13 +61,15 @@ public class HarnessService extends Service {
         String action = intent == null ? ACTION_START : intent.getAction();
         if (ACTION_STOP.equals(action)) {
             wantRun = false;
-            // stopContainer 的 waitFor 可能阻塞，onStartCommand 跑在主线程，
-            // 容器卡住不退时直接 ANR（issue #8）——停容器放后台线程
-            executor.execute(() -> {
+            // 停止必须真正杀掉容器与全部服务（通知栏的「停止」= 关机语义）。
+            // 绝不能放进 executor：runLoop 永久占着单线程（while 循环阻塞在
+            // process.waitFor()），stop 任务会排在它后面永远执行不到——
+            // 通知栏停止和设置页停止/重启因此全部失效。独立线程执行停止。
+            new Thread(() -> {
                 stopContainer();
                 stopForeground(true);
                 stopSelf();
-            });
+            }, "dsh-harness-stop").start();
             return START_NOT_STICKY;
         }
         startForeground(NOTIF_ID, buildNotification("正在启动容器…"));
@@ -138,6 +140,9 @@ public class HarnessService extends Service {
     }
 
     private void stopContainer() {
+        // 状态先置 false：设置页/按钮立即反映"已停止"，
+        // 不必等强杀兜底（最长 3s）走完
+        running = false;
         Process p = process;
         if (p != null) {
             p.destroy();
