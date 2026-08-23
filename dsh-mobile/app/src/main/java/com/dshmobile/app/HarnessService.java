@@ -72,7 +72,7 @@ public class HarnessService extends Service {
             }, "dsh-harness-stop").start();
             return START_NOT_STICKY;
         }
-        startForeground(NOTIF_ID, buildNotification("正在启动容器…"));
+        startForeground(NOTIF_ID, buildNotification("Starting container…"));
         acquireWakeLock();
         wantRun = true;
         if (!isRunning()) {
@@ -89,14 +89,14 @@ public class HarnessService extends Service {
             // 启动前自检 node-pty：pty.node 缺失时 dsh web 必崩（plugin tree
             // failed to load），先就地修复再启动，避免无意义的崩溃-重启循环
             if (NodePtyFixer.needsFix(ProotRunner.rootfsDir(this))) {
-                updateNotification("正在修复 node-pty 原生模块…");
+                updateNotification("Repairing node-pty native module…");
                 boolean fixed = NodePtyFixer.fix(this, log);
                 updateNotification(fixed
-                        ? "node-pty 修复完成，正在启动…"
-                        : "node-pty 修复失败，请到设置查看日志");
+                        ? "node-pty fixed, starting…"
+                        : "node-pty repair failed, see logs in Settings");
             }
             try {
-                updateNotification("DeepSeek Harness 运行中 · 端口 " + prefs.getPort());
+                updateNotification("DeepSeek Harness running · Port " + prefs.getPort());
                 startSshd(prefs, log);
                 process = ProotRunner.startWeb(this, prefs.getPort(), log);
                 running = true;
@@ -105,14 +105,14 @@ public class HarnessService extends Service {
                 if (!wantRun) break;
                 restarts++;
                 if (restarts > MAX_RESTART) {
-                    updateNotification("容器多次退出，已停止（详见日志）");
+                    updateNotification("Container exited repeatedly, stopped (see logs)");
                     break;
                 }
-                updateNotification("容器退出(" + code + ")，" + 3 + " 秒后重启…");
+                updateNotification("Container exited (" + code + "), restarting in " + 3 + " seconds…");
                 Thread.sleep(3000);
             } catch (IOException e) {
                 running = false;
-                updateNotification("启动失败: " + e.getMessage());
+                updateNotification("Start failed: " + e.getMessage());
                 break;
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -135,7 +135,7 @@ public class HarnessService extends Service {
         try {
             sshdProcess = ProotRunner.startSshd(this, prefs.getSshPort(), log);
         } catch (IOException e) {
-            updateNotification("SSH 启动失败: " + e.getMessage());
+            updateNotification("SSH start failed: " + e.getMessage());
         }
     }
 
@@ -184,9 +184,9 @@ public class HarnessService extends Service {
 
     private void createChannel() {
         NotificationManager nm = getSystemService(NotificationManager.class);
-        NotificationChannel ch = new NotificationChannel(CHANNEL_ID, "Harness 服务",
+        NotificationChannel ch = new NotificationChannel(CHANNEL_ID, "Harness Service",
                 NotificationManager.IMPORTANCE_LOW);
-        ch.setDescription("DeepSeek Harness 容器运行状态");
+        ch.setDescription("DeepSeek Harness container running status");
         nm.createNotificationChannel(ch);
     }
 
@@ -205,7 +205,7 @@ public class HarnessService extends Service {
                 .setContentText(text)
                 .setSmallIcon(android.R.drawable.stat_sys_download_done)
                 .setContentIntent(pi)
-                .addAction(new Notification.Action.Builder(null, "停止", stopPi).build())
+                .addAction(new Notification.Action.Builder(null, "Stop", stopPi).build())
                 .setOngoing(true)
                 .build();
     }

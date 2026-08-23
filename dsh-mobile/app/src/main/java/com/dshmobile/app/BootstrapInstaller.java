@@ -73,7 +73,7 @@ public final class BootstrapInstaller {
     }
 
     private void checkCancelled() throws IOException {
-        if (cancelled) throw new IOException("已取消");
+        if (cancelled) throw new IOException("Cancelled");
     }
 
     /** 执行完整安装流程。 */
@@ -88,27 +88,27 @@ public final class BootstrapInstaller {
             // 0. 宿主环境检查：部分 Android 15/16 设备是 16KB 页内核，
             //    4KB 对齐的 ELF（Ubuntu/Node 官方包）在上面 exec 直接 ENOEXEC
             long pageSize = android.system.Os.sysconf(android.system.OsConstants._SC_PAGESIZE);
-            log("宿主内核页大小: " + pageSize + " 字节");
+            log("Host kernel page size: " + pageSize + " bytes");
             if (pageSize == 16384) {
-                log("⚠ 这是 16KB 页设备：Ubuntu rootfs 与 Node.js 官方二进制为 4KB 对齐，"
-                        + "可能无法执行（Exec format error）；"
-                        + "proot 本体用 Termux 新版构建（16KB 对齐）不受影响。");
+                log("⚠ This is a 16KB-page device: Ubuntu rootfs and official Node.js binaries are 4KB-aligned,"
+                        + " so they may fail to execute (Exec format error);"
+                        + " proot itself uses the new Termux build (16KB-aligned) and is unaffected.");
             }
 
             // 1. rootfs
             File rootfsTar = new File(dl, "ubuntu-base.tar.gz");
             if (!new File(rootfs, "bin/bash").isFile()) {
-                stage("下载 Ubuntu rootfs", 2);
+                stage("Downloading Ubuntu rootfs", 2);
                 download(prefs.getRootfsUrl(), rootfsTar, 2, 25);
                 checkCancelled();
-                stage("解压 rootfs", 26);
+                stage("Extracting rootfs", 26);
                 deleteRecursively(rootfs);
                 //noinspection ResultOfMethodCallIgnored
                 rootfs.mkdirs();
                 extractTar(rootfsTar, rootfs, true, 0);
-                log("rootfs 解压完成");
+                log("rootfs extraction complete");
             } else {
-                log("rootfs 已存在，跳过");
+                log("rootfs already exists, skipping");
             }
 
             // 2. proot（含 loader：proot 启动任何 ELF 都需要它，编译内置路径指向
@@ -116,13 +116,13 @@ public final class BootstrapInstaller {
             File proot = ProotRunner.prootBin(ctx);
             File loader = new File(base, "loader");
             if (!proot.isFile() || !loader.isFile()) {
-                stage("下载 proot", 32);
+                stage("Downloading proot", 32);
                 String debUrl = resolveTermuxDeb(PROOT_POOL, "proot_");
-                log("proot 包: " + debUrl);
+                log("proot package: " + debUrl);
                 File deb = new File(dl, "proot.deb");
                 download(debUrl, deb, 32, 40);
                 checkCancelled();
-                stage("提取 proot", 41);
+                stage("Extracting proot", 41);
                 extractProotFromDeb(deb, base);
                 //noinspection ResultOfMethodCallIgnored
                 proot.setExecutable(true, true);
@@ -130,16 +130,16 @@ public final class BootstrapInstaller {
                 loader.setExecutable(true, true);
                 //noinspection ResultOfMethodCallIgnored
                 new File(base, "loader32").setExecutable(true, true);
-                log("proot 与 loader 就绪");
+                log("proot and loader ready");
             } else {
-                log("proot 已存在，跳过");
+                log("proot already exists, skipping");
             }
             // 16KB 页设备上核对 proot/loader 的 ELF 对齐是否达标（Termux 新构建应为 16384）
             if (pageSize == 16384) {
                 long align = elfMaxAlign(proot);
-                log("proot ELF 对齐: " + align);
+                log("proot ELF alignment: " + align);
                 if (align >= 0 && align < 16384) {
-                    log("⚠ proot 二进制未按 16KB 对齐，在此设备上无法运行，请反馈此日志。");
+                    log("⚠ The proot binary is not 16KB-aligned and cannot run on this device; please report this log.");
                 }
             }
 
@@ -147,52 +147,52 @@ public final class BootstrapInstaller {
             File libDir = new File(base, "lib");
             File tallocSo = new File(libDir, "libtalloc.so.2");
             if (!tallocSo.isFile()) {
-                stage("下载 proot 依赖库", 42);
+                stage("Downloading proot dependencies", 42);
                 //noinspection ResultOfMethodCallIgnored
                 libDir.mkdirs();
                 String tallocUrl = resolveTermuxDeb(LIBTALLOC_POOL, "libtalloc_");
-                log("libtalloc 包: " + tallocUrl);
+                log("libtalloc package: " + tallocUrl);
                 File tallocDeb = new File(dl, "libtalloc.deb");
                 download(tallocUrl, tallocDeb, 42, 43);
                 extractLibsFromDeb(tallocDeb, libDir);
                 checkCancelled();
                 String shmemUrl = resolveTermuxDeb(LIBANDROID_SHMEM_POOL, "libandroid-shmem_");
-                log("libandroid-shmem 包: " + shmemUrl);
+                log("libandroid-shmem package: " + shmemUrl);
                 File shmemDeb = new File(dl, "libandroid-shmem.deb");
                 download(shmemUrl, shmemDeb, 43, 44);
                 extractLibsFromDeb(shmemDeb, libDir);
-                log("proot 依赖库就绪");
+                log("proot dependencies ready");
             } else {
-                log("proot 依赖库已存在，跳过");
+                log("proot dependencies already exist, skipping");
             }
 
             // 3. Node.js -> rootfs/opt/node
             File nodeBin = new File(rootfs, "opt/node/bin/node");
             if (!nodeBin.isFile()) {
-                stage("下载 Node.js", 45);
+                stage("Downloading Node.js", 45);
                 String nodeUrl = resolveNodeUrl();
-                log("Node 包: " + nodeUrl);
+                log("Node package: " + nodeUrl);
                 File nodeTar = new File(dl, "node.tar.xz");
                 download(nodeUrl, nodeTar, 45, 65);
                 checkCancelled();
-                stage("解压 Node.js", 66);
+                stage("Extracting Node.js", 66);
                 deleteRecursively(new File(rootfs, "opt/node"));
                 //noinspection ResultOfMethodCallIgnored
                 new File(rootfs, "opt/node").mkdirs();
                 extractTar(nodeTar, new File(rootfs, "opt/node"), false, 1);
-                log("Node.js 就绪");
+                log("Node.js ready");
             } else {
-                log("Node.js 已存在，跳过");
+                log("Node.js already exists, skipping");
             }
 
             // 4. 容器内基础配置
-            stage("配置容器", 72);
+            stage("Configuring container", 72);
             writeContainerConfig(rootfs);
 
             // 4b. 编译工具链（dsh 依赖的 node-pty 需要 python3/make/g++ 现场编译）
             File gxx = new File(rootfs, "usr/bin/g++");
             if (!gxx.isFile()) {
-                stage("安装编译工具链", 74);
+                stage("Installing build toolchain", 74);
                 // 保底重试：网络/源抖动导致失败时清理重试一次，仍失败则跳过——
                 // 不中断整个安装（node-pty 在服务启动前还有 HarnessService 的兜底重编）。
                 boolean toolchainOk = false;
@@ -209,7 +209,7 @@ public final class BootstrapInstaller {
                         try {
                             runInContainer(Arrays.asList("/usr/bin/dpkg", "--configure", "-a"), 78, 78);
                         } catch (Exception e) {
-                            log("dpkg 状态修复未完成（忽略，继续安装）");
+                            log("dpkg state repair incomplete (ignored, continuing installation)");
                         }
                         runInContainer(Arrays.asList("/usr/bin/apt-get",
                                 "-o", "DPkg::Lock::Timeout=180",
@@ -218,21 +218,21 @@ public final class BootstrapInstaller {
                         toolchainOk = gxx.isFile();
                     } catch (Exception e) {
                         if (cancelled) throw e;
-                        log("编译工具链安装失败（第 " + attempt + " 次）: " + e.getMessage());
+                        log("Build toolchain installation failed (attempt " + attempt + "): " + e.getMessage());
                     }
                 }
                 if (!toolchainOk) {
-                    log("⚠ 编译工具链安装失败，已跳过。node-pty 会在服务启动时自动重试编译；"
-                            + "也可在网络好转后到设置里重置容器重装。");
+                    log("⚠ Build toolchain installation failed and was skipped. node-pty will retry compiling when the service starts;"
+                            + " you can also reset and reinstall the container in Settings once the network improves.");
                 }
             } else {
-                log("编译工具链已存在，跳过");
+                log("Build toolchain already exists, skipping");
             }
 
             // 5. 容器内安装 dsh
             File dshBin = new File(rootfs, "opt/node/bin/dsh");
             if (!dshBin.isFile()) {
-                stage("安装 DeepSeek Harness", 83);
+                stage("Installing DeepSeek Harness", 83);
                 // 上次安装若被中断（杀进程/磁盘满），会留下半成品目录，
                 // npm 重命名时报 ENOTEMPTY 永远装不上——先清掉再装
                 File scopeDir = new File(rootfs, "opt/node/lib/node_modules/@deepseek-ai");
@@ -250,7 +250,7 @@ public final class BootstrapInstaller {
                 runInContainer(Arrays.asList("/opt/node/bin/npm", "install", "-g",
                         "@deepseek-ai/dsh"), 85, 96);
             } else {
-                log("dsh 已安装，跳过");
+                log("dsh already installed, skipping");
             }
 
             // 5b. 校验 node-pty 原生模块。npm 装 dsh 时 node-pty 要 node-gyp 现场编译，
@@ -262,15 +262,15 @@ public final class BootstrapInstaller {
                 if (!new File(rootfs, "usr/bin/g++").isFile()) {
                     // 工具链步骤已被跳过/失败：这里必然编译不过，不硬失败——
                     // 服务启动前 HarnessService 会带工具链重试（网络恢复后自愈）
-                    log("⚠ 无编译工具链，跳过 node-pty 编译（服务启动时会自动重试）");
+                    log("⚠ No build toolchain, skipping node-pty compilation (will retry automatically when the service starts)");
                 } else {
-                    stage("编译 node-pty 原生模块", 97);
-                    log("node-pty 缺少 pty.node，正在容器内重建…");
+                    stage("Compiling node-pty native module", 97);
+                    log("node-pty is missing pty.node, rebuilding inside the container…");
                     File installLog = new File(ProotRunner.baseDir(ctx), "install.log");
                     if (!NodePtyFixer.fix(ctx, installLog)) {
-                        throw new IOException("node-pty 原生模块重建失败，请到设置查看日志");
+                        throw new IOException("node-pty native module rebuild failed; check the log in Settings");
                     }
-                    log("node-pty 原生模块就绪");
+                    log("node-pty native module ready");
                 }
             }
 
@@ -278,11 +278,11 @@ public final class BootstrapInstaller {
             // 6. SSH 服务：本地终端（Termux / adb forward）连容器用
             ensureSshServer(rootfs);
             checkCancelled();
-            stage("完成", 100);
+            stage("Done", 100);
             prefs.setSetupDone(true);
             listener.onDone(true, null);
         } catch (Exception e) {
-            log("安装失败: " + e.getMessage());
+            log("Installation failed: " + e.getMessage());
             listener.onDone(false, e.getMessage());
         }
     }
@@ -293,10 +293,10 @@ public final class BootstrapInstaller {
      */
     private void ensureSshServer(File rootfs) throws IOException, InterruptedException {
         if (new File(rootfs, "usr/sbin/sshd").isFile()) {
-            log("SSH 服务已安装，跳过");
+            log("SSH service already installed, skipping");
             return;
         }
-        stage("安装 SSH 服务", 97);
+        stage("Installing SSH service", 97);
         // 保底重试：失败重试一次，再失败则跳过（服务启动前还有
         // ensureSshServerInstalled 兜底补装，不至于整个安装被拖死）
         for (int attempt = 1; attempt <= 2 && !cancelled; attempt++) {
@@ -308,7 +308,7 @@ public final class BootstrapInstaller {
                 try {
                     runInContainer(Arrays.asList("/usr/bin/dpkg", "--configure", "-a"), 97, 97);
                 } catch (Exception e) {
-                    log("dpkg 状态修复未完成（忽略，继续安装）");
+                    log("dpkg state repair incomplete (ignored, continuing installation)");
                 }
                 runInContainer(Arrays.asList("/usr/bin/apt-get",
                         "-o", "DPkg::Lock::Timeout=180",
@@ -316,10 +316,10 @@ public final class BootstrapInstaller {
                 return;
             } catch (Exception e) {
                 if (cancelled) throw e;
-                log("SSH 服务安装失败（第 " + attempt + " 次）: " + e.getMessage());
+                log("SSH service installation failed (attempt " + attempt + "): " + e.getMessage());
             }
         }
-        log("⚠ SSH 服务安装失败，已跳过（服务启动时会自动重试补装）");
+        log("⚠ SSH service installation failed and was skipped (will retry installing automatically when the service starts)");
     }
 
     /**
@@ -345,9 +345,9 @@ public final class BootstrapInstaller {
         });
         try {
             installer.ensureSshServer(ProotRunner.rootfsDir(ctx));
-            appendLog(logFile, "[ssh] openssh-server 补装完成");
+            appendLog(logFile, "[ssh] openssh-server installed");
         } catch (Exception e) {
-            appendLog(logFile, "[ssh] 安装失败（不影响 Web 服务）: " + e.getMessage());
+            appendLog(logFile, "[ssh] installation failed (Web service unaffected): " + e.getMessage());
         }
     }
 
@@ -386,7 +386,7 @@ public final class BootstrapInstaller {
         new File(rootfs, "mnt/shared").mkdirs();
         //noinspection ResultOfMethodCallIgnored
         new File(rootfs, "root").mkdirs();
-        log("已写入 resolv.conf、apt 源与挂载点");
+        log("Wrote resolv.conf, apt sources and mount points");
     }
 
     /** 在容器里执行命令，日志实时回调，并解析 npm 进度粗略推进百分比。 */
@@ -427,7 +427,7 @@ public final class BootstrapInstaller {
         }
         int code = p.waitFor();
         if (code != 0) {
-            throw new IOException("容器命令失败(" + code + "): " + inner);
+            throw new IOException("Container command failed(" + code + "): " + inner);
         }
     }
 
@@ -459,7 +459,7 @@ public final class BootstrapInstaller {
                 if (cmdline == null) continue;
                 if (cmdline.contains("apt-get") || cmdline.contains("/dpkg")
                         || cmdline.contains("unattended-upgrade")) {
-                    log("清理残留的包管理进程 (pid " + pid + ")");
+                    log("Cleaning up stale package manager process (pid " + pid + ")");
                     android.os.Process.killProcess(pid);
                     killed = true;
                 }
@@ -527,14 +527,14 @@ public final class BootstrapInstaller {
                             ? pStart + (int) ((pEnd - pStart) * done / total)
                             : pStart;
                     stage(null, Math.min(p, pEnd));
-                    log(String.format("已下载 %.1f MB", done / 1048576.0));
+                    log(String.format("Downloaded %.1f MB", done / 1048576.0));
                 }
             }
         } finally {
             conn.disconnect();
         }
         if (!tmp.renameTo(dest)) {
-            throw new IOException("无法写入 " + dest);
+            throw new IOException("Cannot write " + dest);
         }
     }
 
@@ -578,7 +578,7 @@ public final class BootstrapInstaller {
             latest = m.group(1);
         }
         if (latest == null) {
-            throw new IOException("未找到 " + prefix + " aarch64 包");
+            throw new IOException("No " + prefix + " aarch64 package found");
         }
         return pool + latest;
     }
@@ -594,7 +594,7 @@ public final class BootstrapInstaller {
             latest = m.group(1);
         }
         if (latest == null) {
-            throw new IOException("未找到 Node linux-arm64 包");
+            throw new IOException("No Node linux-arm64 package found");
         }
         return base + "/" + NODE_SERIES + "/" + latest + "-linux-arm64.tar.xz";
     }
@@ -639,7 +639,7 @@ public final class BootstrapInstaller {
                         Files.createSymbolicLink(out.toPath(), new File(target).toPath());
                     } catch (Exception ex) {
                         // 某些文件系统不支持符号链接时跳过（proot --link2symlink 兜底）
-                        log("跳过符号链接: " + rel);
+                        log("Skipping symlink: " + rel);
                     }
                 } else if (e.isLink()) {
                     File parent = out.getParentFile();
@@ -651,7 +651,7 @@ public final class BootstrapInstaller {
                     try {
                         Files.createLink(out.toPath(), src.toPath());
                     } catch (Exception ex) {
-                        log("跳过硬链接: " + rel);
+                        log("Skipping hard link: " + rel);
                     }
                 } else {
                     File parent = out.getParentFile();
@@ -690,7 +690,7 @@ public final class BootstrapInstaller {
                 }
             }
             if (dataTar == null) {
-                throw new IOException("deb 中未找到 data.tar");
+                throw new IOException("No data.tar found in deb");
             }
             InputStream cis = xz
                     ? new XZCompressorInputStream(new java.io.ByteArrayInputStream(dataTar))
@@ -721,7 +721,7 @@ public final class BootstrapInstaller {
                 }
             }
             if (found == 0) {
-                throw new IOException("deb 中未找到 proot 二进制");
+                throw new IOException("No proot binary found in deb");
             }
         }
     }
@@ -744,7 +744,7 @@ public final class BootstrapInstaller {
                 }
             }
             if (dataTar == null) {
-                throw new IOException("deb 中未找到 data.tar");
+                throw new IOException("No data.tar found in deb");
             }
             InputStream cis = xz
                     ? new XZCompressorInputStream(new java.io.ByteArrayInputStream(dataTar))
@@ -766,7 +766,7 @@ public final class BootstrapInstaller {
             }
         }
         if (files.isEmpty()) {
-            throw new IOException("deb 中未找到 .so 库");
+            throw new IOException("No .so library found in deb");
         }
         for (java.util.Map.Entry<String, byte[]> en : files.entrySet()) {
             File out = new File(libDir, en.getKey());
@@ -784,7 +784,7 @@ public final class BootstrapInstaller {
                 }
             }
         }
-        log("已提取库: " + files.keySet());
+        log("Extracted libs: " + files.keySet());
     }
 
     /** InputStream.readAllBytes 需要 API 33+，minSdk 26 用手动读。 */

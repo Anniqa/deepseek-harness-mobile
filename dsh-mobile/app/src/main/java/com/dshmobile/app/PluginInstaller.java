@@ -39,7 +39,7 @@ public final class PluginInstaller {
 
     public static Result install(Context ctx, String spec) {
         if (spec == null || !SPEC.matcher(spec).matches()) {
-            return new Result(false, "无效的插件包名：" + spec);
+            return new Result(false, "Invalid plugin package name: " + spec);
         }
         try {
             String pnpmErr = ensurePnpm(ctx);
@@ -56,7 +56,7 @@ public final class PluginInstaller {
         File pnpm = new File(ProotRunner.rootfsDir(ctx), "opt/node/bin/pnpm");
         if (pnpm.isFile()) return null;
         Result r = run(ctx, Arrays.asList("corepack", "enable"), 120_000);
-        if (!r.ok) return "pnpm 初始化失败：\n" + r.output;
+        if (!r.ok) return "pnpm initialization failed:\n" + r.output;
         return null;
     }
 
@@ -90,7 +90,7 @@ public final class PluginInstaller {
                 p.destroyForcibly();
             }
             reader.join(1500);
-            return new Result(false, "安装超时（" + (timeoutMs / 60000) + " 分钟）\n" + tail(buf));
+            return new Result(false, "Install timed out (" + (timeoutMs / 60000) + " minutes)\n" + tail(buf));
         }
         reader.join(3000);
         int code = p.exitValue();

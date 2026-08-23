@@ -58,7 +58,7 @@
             android:foregroundServiceType="specialUse">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="运行内置 Ubuntu 容器中的 DeepSeek Harness Web 服务" />
+                android:value="Runs the DeepSeek Harness Web service inside the built-in Ubuntu container" />
         </service>
     </application>
 </manifest>

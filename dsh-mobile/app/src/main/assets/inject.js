@@ -380,31 +380,31 @@
     row.id = 'dsh-mobile-plugin-adder';
     var input = document.createElement('input');
     input.type = 'text';
-    input.placeholder = 'npm 包名，如 dsh-plugin-xxx';
+    input.placeholder = 'npm package name, e.g. dsh-plugin-xxx';
     input.setAttribute('autocapitalize', 'off');
     input.setAttribute('autocorrect', 'off');
     var btn = document.createElement('button');
     btn.type = 'button';
-    btn.textContent = '添加插件';
+    btn.textContent = 'Add plugin';
     var statusEl = document.createElement('div');
     statusEl.className = 'dsh-mobile-plugin-adder-status';
     btn.addEventListener('click', function () {
       var name = input.value.trim();
       if (!name) {
-        statusEl.textContent = '请输入插件包名';
+        statusEl.textContent = 'Enter a plugin package name';
         return;
       }
       btn.disabled = true;
       input.disabled = true;
-      statusEl.textContent = '安装中…（首次安装需联网下载 pnpm，可能要几分钟）';
+      statusEl.textContent = 'Installing… (first install downloads pnpm over the network; may take a few minutes)';
       window.__dshOnPluginInstallResult = function (res) {
         btn.disabled = false;
         input.disabled = false;
         if (res && res.ok) {
-          statusEl.textContent = '已安装：' + name + '。到 App 设置页点「重启服务」后生效。';
+          statusEl.textContent = 'Installed: ' + name + '. Tap "Restart service" in the app Settings to apply.';
           input.value = '';
         } else {
-          statusEl.textContent = '安装失败：\n' + ((res && res.output) || '未知错误').slice(-800);
+          statusEl.textContent = 'Install failed:\n' + ((res && res.output) || 'Unknown error').slice(-800);
         }
       };
       try {
@@ -412,7 +412,7 @@
       } catch (e) {
         btn.disabled = false;
         input.disabled = false;
-        statusEl.textContent = '调用原生桥失败：' + e;
+        statusEl.textContent = 'Native bridge call failed: ' + e;
       }
     });
     row.appendChild(input);
